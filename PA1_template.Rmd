@@ -8,18 +8,149 @@ output:
 
 ## Loading and preprocessing the data
 
+```{r echo=TRUE}
+# Load dataset
+activity <- read.csv("activity.csv")
+
+# Convert date to Date format
+activity$date <- as.Date(activity$date)
+
+# Check structure
+str(activity)
+summary(activity)
 
 
 ## What is mean total number of steps taken per day?
 
 
+```r
+```{r echo=TRUE}
+steps_per_day <- aggregate(steps ~ date, data = activity, sum, na.rm = TRUE)
+
+head(steps_per_day)
+
+### Histogram
+
+```r
+```{r echo=TRUE}
+hist(steps_per_day$steps,
+     main="Total Steps Taken Per Day",
+     xlab="Steps per Day",
+     col="skyblue",
+     breaks=20)
+
+### Mean and Median
+
+```r
+```{r echo=TRUE}
+mean_steps <- mean(steps_per_day$steps)
+median_steps <- median(steps_per_day$steps)
+
+mean_steps
+median_steps
 
 ## What is the average daily activity pattern?
 
+### Average steps per interval
 
+```r
+```{r echo=TRUE}
+avg_steps_interval <- aggregate(steps ~ interval, data = activity, mean, na.rm = TRUE)
+
+head(avg_steps_interval)
+
+### Time Series Plot
+
+```r
+```{r echo=TRUE}
+plot(avg_steps_interval$interval,
+     avg_steps_interval$steps,
+     type="l",
+     col="blue",
+     xlab="5-minute Interval",
+     ylab="Average Steps",
+     main="Average Daily Activity Pattern")
+
+### Interval with Maximum Steps
+
+```r
+```{r echo=TRUE}
+max_interval <- avg_steps_interval[which.max(avg_steps_interval$steps), ]
+max_interval
 
 ## Imputing missing values
+```r
+```{r echo=TRUE}
+sum(is.na(activity$steps))
 
+### Strategy: Replace NA with Mean of that Interval
+
+```r
+```{r echo=TRUE}
+# mean steps per interval
+interval_means <- aggregate(steps ~ interval, data=activity, mean, na.rm=TRUE)
+
+# copy dataset
+activity_filled <- activity
+
+# fill NA
+for(i in 1:nrow(activity_filled)){
+  if(is.na(activity_filled$steps[i])){
+    interval <- activity_filled$interval[i]
+    activity_filled$steps[i] <- interval_means$steps[interval_means$interval == interval]
+  }
+}
+```r
+```{r echo=TRUE}
+steps_per_day_filled <- aggregate(steps ~ date, data = activity_filled, sum)
+
+hist(steps_per_day_filled$steps,
+     main="Total Steps Per Day (After Imputation)",
+     xlab="Steps per Day",
+     col="lightgreen",
+     breaks=20)
+
+### Mean and Median After Imputation
+
+```r
+```{r echo=TRUE}
+mean(steps_per_day_filled$steps)
+median(steps_per_day_filled$steps)
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+### Create Factor Variable
+
+```r
+```{r echo=TRUE}
+activity_filled$day_type <- ifelse(weekdays(activity_filled$date) %in% 
+                                   c("Saturday","Sunday"),
+                                   "weekend","weekday")
+
+activity_filled$day_type <- as.factor(activity_filled$day_type)
+
+---
+
+### Average Steps by Interval and Day Type
+
+```r
+```{r echo=TRUE}
+library(lattice)
+
+avg_steps_daytype <- aggregate(steps ~ interval + day_type,
+                               data = activity_filled,
+                               mean)
+
+---
+
+### Panel Plot
+
+```r
+```{r echo=TRUE}
+xyplot(steps ~ interval | day_type,
+       data = avg_steps_daytype,
+       type="l",
+       layout=c(1,2),
+       xlab="Interval",
+       ylab="Number of Steps",
+       main="Average Steps: Weekday vs Weekend")
